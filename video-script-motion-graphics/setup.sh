@@ -18,17 +18,31 @@ OS="$(uname -s)"
 # ── 1. System dependencies ────────────────────────────────────────────────────
 echo "[1/3] Checking system dependencies..."
 
+# On macOS, ensure Homebrew is available
+if [[ "$OS" == "Darwin" ]] && ! command -v brew &> /dev/null; then
+    echo "  → Homebrew not found. Installing Homebrew first..."
+    echo "    (You may be prompted for your password)"
+    echo ""
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    # Add brew to PATH for this session (Apple Silicon vs Intel)
+    if [ -f "/opt/homebrew/bin/brew" ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        echo "  → Adding Homebrew to your shell profile..."
+        echo '' >> "$HOME/.zprofile"
+        echo '# Homebrew' >> "$HOME/.zprofile"
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
+    elif [ -f "/usr/local/bin/brew" ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+    echo "  ✓ Homebrew installed"
+fi
+
 # Check ffmpeg
 if ! command -v ffmpeg &> /dev/null; then
     echo "  → Installing ffmpeg..."
     if [[ "$OS" == "Darwin" ]]; then
-        if command -v brew &> /dev/null; then
-            brew install ffmpeg
-        else
-            echo "  ERROR: Homebrew not found. Install it first: https://brew.sh"
-            echo "  Then run: brew install ffmpeg"
-            exit 1
-        fi
+        brew install ffmpeg
     elif [[ "$OS" == "Linux" ]]; then
         if command -v apt-get &> /dev/null; then
             sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libcairo2-dev pkg-config python3-dev
